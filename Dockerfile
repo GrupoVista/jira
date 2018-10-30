@@ -1,9 +1,9 @@
-FROM blacklabelops/alpine:3.7
+FROM blacklabelops/alpine:3.8
 MAINTAINER Steffen Bleul <sbl@blacklabelops.com>
 
 # Note that you also need to update buildscripts/release.sh when the
 # Jira version changes
-ARG JIRA_VERSION=7.10.1
+ARG JIRA_VERSION=7.12.3
 ARG JIRA_PRODUCT=jira-software
 # Permissions, set the linux user id and group id
 ARG CONTAINER_UID=1000

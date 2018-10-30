@@ -4,6 +4,8 @@
 [![Open Issues](https://img.shields.io/github/issues/blacklabelops/jira.svg)](https://github.com/blacklabelops/jira/issues) [![Stars on GitHub](https://img.shields.io/github/stars/blacklabelops/jira.svg)](https://github.com/cblacklabelops/jira/stargazers)
 [![Docker Stars](https://img.shields.io/docker/stars/blacklabelops/jira.svg)](https://hub.docker.com/r/blacklabelops/jira/) [![Docker Pulls](https://img.shields.io/docker/pulls/blacklabelops/jira.svg)](https://hub.docker.com/r/blacklabelops/jira/)
 
+[![Try in PWD](https://raw.githubusercontent.com/play-with-docker/stacks/master/assets/images/button.png)](https://labs.play-with-docker.com/?stack=https://raw.githubusercontent.com/blacklabelops/jira/master/dc-pwd.yml)
+
 
 "The best software teams ship early and often - Not many tools, one tool. JIRA Software is built for every member of your software team to plan, track, and release great software." - [[Source](https://www.atlassian.com/software/jira)]
 
@@ -11,9 +13,9 @@
 
 | Product |Version | Tags  | Dockerfile |
 |---------|--------|-------|------------|
-| Jira Software | 7.10.1 | 7.10.1, latest, latest.de | [Dockerfile](https://github.com/blacklabelops/jira/blob/master/Dockerfile) |
-| Jira Service Desk | 3.13.1 | servicedesk, servicedesk.3.13.1, servicedesk.de, servicedesk.3.13.1.de | [Dockerfile](https://github.com/blacklabelops/jira/blob/master/Dockerfile) |
-| Jira Core | 7.10.1 | core, core.7.10.1, core.de, core.7.10.1.de | [Dockerfile](https://github.com/blacklabelops/jira/blob/master/Dockerfile) |
+| Jira Software | 7.12.3 | 7.12.3, latest, latest.de | [Dockerfile](https://github.com/blacklabelops/jira/blob/master/Dockerfile) |
+| Jira Service Desk | 3.15.3 | servicedesk, servicedesk.3.15.3, servicedesk.de, servicedesk.3.15.3.de | [Dockerfile](https://github.com/blacklabelops/jira/blob/master/Dockerfile) |
+| Jira Core | 7.12.3 | core, core.7.12.3, core.de, core.7.12.3.de | [Dockerfile](https://github.com/blacklabelops/jira/blob/master/Dockerfile) |
 
 > Older tags remain but are not supported/rebuild.
 
@@ -21,7 +23,7 @@
 
 ## Support & Feature Requests
 
-Leave a message and ask questions on Hipchat: [blacklabelops/hipchat](http://support.blacklabelops.com)
+Leave a message and ask questions on Hipchat: [blacklabelops/hipchat](https://www.hipchat.com/gEorzhvnI)
 
 Maybe no one has ever told you, but munich developers run on beer! If you like my work, share a beer!
 
@@ -244,8 +246,8 @@ $ docker run -d --name jira \
 ## SQL Server
 
 Starting with version 7.8.0 of JIRA, Atlassian no longer provides/uses the jTDS JDBC driver and instead bundles the Microsoft JDBC driver.  This proves to be a bit of a headache because while the jTDS driver used the
-conventional JDBC URL scheme, Microsoft's driver uses a non-standard JDBC URL scheme that departs wildly from the usual (see [Issue #72](https://github.com/blacklabelops/jira/issues/72) for details).  As a result of 
-this deviation from the standard, users wishing to connect to a SQL Server database *MUST* encode their host/port/database information in the `JIRA_DATABASE_URL` and cannot leverage the individual 
+conventional JDBC URL scheme, Microsoft's driver uses a non-standard JDBC URL scheme that departs wildly from the usual (see [Issue #72](https://github.com/blacklabelops/jira/issues/72) for details).  As a result of
+this deviation from the standard, users wishing to connect to a SQL Server database *MUST* encode their host/port/database information in the `JIRA_DATABASE_URL` and cannot leverage the individual
 `JIRA_DB_*` variables.  Note that any additional driver properties needed can be appended in much the same was as `databaseName` is handled in the example below.
 
 ~~~~
@@ -409,30 +411,49 @@ $ docker run -d \
 Jira like any Java application needs a huge amount of memory. If you limit the memory usage by using the Docker --mem option make sure that you give enough memory. Otherwise your Jira will begin to restart randomly.
 You should give at least 1-2GB more than the JVM maximum memory setting to your container.
 
+Java JVM memory settings are applied by manipulating properties inside the `setenv.sh` file and this image can set those properties for you.
+
+Example:
+
+Applying minimum memory of 384 megabytes and maximum of one gigabyte.
+
+The correct properties from the Atlassian documentation are `JVM_MINIMUM_MEMORY` and `JVM_MAXIMUM_MEMORY`
+
+The image will set those properties, if you precede the property name with `SETENV_`.
+
 Example:
 
 ~~~~
 $ docker run -d -p 80:8080 --name jira \
     -v jiravolume:/var/atlassian/jira \
-    -e "CATALINA_OPTS= -Xms384m -Xmx1g" \
-    blacklabelops/jira
-~~~~
-
-> CATALINA_OPTS sets webserver startup properties.
-
-Alternative solution recommended by atlassian: Using the environment variables `JVM_MINIMUM_MEMORY` and `JVM_MAXIMUM_MEMORY`.
-
-Example:
-
-~~~~
-$ docker run -d -p 80:8080 --name jira \
-    -v jiravolume:/var/atlassian/jira \
-    -e "JVM_MINIMUM_MEMORY=384m" \
-    -e "JVM_MAXIMUM_MEMORY=1g" \
+    -e "SETENV_JVM_MINIMUM_MEMORY=384m" \
+    -e "SETENV_JVM_MAXIMUM_MEMORY=1g" \
     blacklabelops/jira
 ~~~~
 
 > Note: Atlassian default is minimum 384m and maximum 768m. You should never go lower.
+
+# Jira Startup Plugin Purge
+
+You can enable osgi plugin purge on startup and restarts. The image will merciless purge the direcories
+
+* /var/atlassian/jira/plugins/.bundled-plugins
+* /var/atlassian/jira/plugins/.osgi-plugins
+
+This will help solving [corrupted plugin caches](https://confluence.atlassian.com/jirakb/troubleshooting-jira-startup-failed-error-394464512.html#TroubleshootingJIRAStartupFailedError-Cache). Make sure to [increasing the plugin timeout](https://confluence.atlassian.com/jirakb/troubleshooting-jira-startup-failed-error-394464512.html#TroubleshootingJIRAStartupFailedError-Time) because Jira will have to rebuild the whole cache at each startup.
+
+This is controlled by the environment variable `JIRA_PURGE_PLUGINS_ONSTART`. Possible values:
+
+* `true`: Purge will be done each time container is started or restarted.
+* `false` (Default): No purge will be done.
+
+Example:
+
+~~~~
+$ docker run -d -p 80:8080 -v jiravolume:/var/atlassian/jira \
+    -e "JIRA_PURGE_PLUGINS_ONSTART=true" \
+    --name jira blacklabelops/jira
+~~~~
 
 # Jira SSO With Crowd
 
